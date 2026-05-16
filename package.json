@@ -1,0 +1,6 @@
+{
+  "name": "civic-match-proxy",
+  "version": "1.0.0",
+  "description": "Serverless proxy for Google Civic Information API",
+  "private": true
+}
