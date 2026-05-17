@@ -46,7 +46,14 @@ export default async function handler(req, res) {
   const data = await response.json();
   return res.status(200).json(data);
 }
-
+if (endpoint === "elections") {
+  if (!GOOGLE_KEY) return res.status(500).json({ error: "Google API key not configured" });
+  const url = `https://www.googleapis.com/civicinfo/v2/elections?key=${GOOGLE_KEY}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  const elections = (data.elections || []).filter(e => e.electionDay >= new Date().toISOString().slice(0,10));
+  return res.status(200).json({ election: elections[0] || null });
+}
     // OpenStates: legislator votes
     if (endpoint === "legislator-votes") {
       if (!legislatorId) return res.status(400).json({ error: "legislatorId required" });
