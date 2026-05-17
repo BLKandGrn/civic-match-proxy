@@ -35,13 +35,17 @@ export default async function handler(req, res) {
 
     // OpenStates: legislators by address
     if (endpoint === "state-legislators") {
-      if (!address) return res.status(400).json({ error: "address required" });
-      if (!OPEN_STATES_KEY) return res.status(500).json({ error: "OpenStates API key not configured" });
-      const url = `https://v3.openstates.org/people.geo?address=${encodeURIComponent(address)}&apikey=${OPEN_STATES_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return res.status(200).json(data);
-    }
+  if (!address) return res.status(400).json({ error: "address required" });
+  if (!OPEN_STATES_KEY) return res.status(500).json({ error: "OpenStates API key not configured" });
+  const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, { headers: { "User-Agent": "civic-match-app" } });
+  const geoData = await geoRes.json();
+  if (!geoData || !geoData[0]) return res.status(200).json({ results: [] });
+  const { lat, lon } = geoData[0];
+  const url = `https://v3.openstates.org/people.geo?lat=${lat}&lng=${lon}&apikey=${OPEN_STATES_KEY}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  return res.status(200).json(data);
+}
 
     // OpenStates: legislator votes
     if (endpoint === "legislator-votes") {
