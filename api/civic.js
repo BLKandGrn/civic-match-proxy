@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   const GOOGLE_KEY = process.env.GOOGLE_CIVIC_API_KEY;
       const CONGRESS_KEY = process.env.CONGRESS_API_KEY;
       const OPEN_STATES_KEY = process.env.OPEN_STATES_API_KEY;
+      const DEMOCRACY_WORKS_KEY = process.env.DEMOCRACY_WORKS_API_KEY;
 
   try {
           // Congress.gov: members by state/district
@@ -78,6 +79,27 @@ export default async function handler(req, res) {
                   console.log("Google Civic raw:", JSON.stringify(data).slice(0, 500));
                   if (data.error) return res.status(200).json({ error: data.error.message, offices: [], officials: [] });
                   return res.status(200).json(data);
+        }
+
+        // Democracy Works: upcoming elections by state OCD-ID
+        if (endpoint === "dw-elections") {
+          if (!state) return res.status(400).json({ error: "state required" });
+          if (!DEMOCRACY_WORKS_KEY) return res.status(500).json({ error: "Democracy Works API key not configured" });
+          const ocdId = `ocd-division/country:us/state:${state.toLowerCase()}`;
+          const url = `https://api.democracy.works/elections/upcoming?district-divisions=${encodeURIComponent(ocdId)}`;
+          const response = await fetch(url, { headers: { "Accept": "application/json", "Authorization": `apikey ${DEMOCRACY_WORKS_KEY}` } });
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
+        // Democracy Works: state authority URLs (registration, polling place)
+        if (endpoint === "dw-state-urls") {
+          if (!state) return res.status(400).json({ error: "state required" });
+          if (!DEMOCRACY_WORKS_KEY) return res.status(500).json({ error: "Democracy Works API key not configured" });
+          const url = `https://api.democracy.works/election-authorities/state-urls/${state.toLowerCase()}`;
+          const response = await fetch(url, { headers: { "Accept": "application/json", "Authorization": `apikey ${DEMOCRACY_WORKS_KEY}` } });
+          const data = await response.json();
+          return res.status(200).json(data);
         }
 
         return res.status(400).json({ error: "Missing required parameters" });
