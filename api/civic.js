@@ -69,7 +69,8 @@ export default async function handler(req, res) {
         }
 
         // Google Civic: representatives
-        if (address) {
+        if (endpoint === "representatives" || (!endpoint && address)) {
+                  if (!address) return res.status(400).json({ error: "address required" });
                   if (!GOOGLE_KEY) return res.status(500).json({ error: "Google API key not configured" });
                   const url = `https://www.googleapis.com/civicinfo/v2/representatives?key=${GOOGLE_KEY}&address=${encodeURIComponent(address)}&includeOffices=true`;
                   const response = await fetch(url);
