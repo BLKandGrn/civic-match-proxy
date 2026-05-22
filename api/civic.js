@@ -75,6 +75,8 @@ export default async function handler(req, res) {
                   const url = `https://www.googleapis.com/civicinfo/v2/representatives?key=${GOOGLE_KEY}&address=${encodeURIComponent(address)}&includeOffices=true`;
                   const response = await fetch(url);
                   const data = await response.json();
+                  console.log("Google Civic raw:", JSON.stringify(data).slice(0, 500));
+                  if (data.error) return res.status(200).json({ error: data.error.message, offices: [], officials: [] });
                   return res.status(200).json(data);
         }
 
