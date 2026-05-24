@@ -8,6 +8,7 @@ export default async function handler(req, res) {
   const { address, state, district, endpoint, memberId, legislatorId } = req.query;
 
   const GOOGLE_KEY = process.env.GOOGLE_CIVIC_API_KEY;
+      const BREVO_KEY = process.env.BREVO_API_KEY;
       const CONGRESS_KEY = process.env.CONGRESS_API_KEY;
       const OPEN_STATES_KEY = process.env.OPEN_STATES_API_KEY;
       const DEMOCRACY_WORKS_KEY = process.env.DEMOCRACY_WORKS_API_KEY;
@@ -100,6 +101,42 @@ export default async function handler(req, res) {
           const response = await fetch(url, { headers: { "Accept": "application/json", "Authorization": `apikey ${DEMOCRACY_WORKS_KEY}` } });
           const data = await response.json();
           return res.status(200).json(data);
+        }
+
+        // Brevo: add contact to election reminders list
+        if (endpoint === "subscribe") {
+          const { email, name, phone } = req.query;
+          if (!email) return res.status(400).json({ error: "email required" });
+          if (!BREVO_KEY) return res.status(500).json({ error: "Brevo API key not configured" });
+
+          const contact = {
+            email,
+            listIds: [33],
+            updateEnabled: true,
+            attributes: {}
+          };
+          if (name) contact.attributes.FIRSTNAME = name.split(" ")[0];
+          if (name && name.split(" ").length > 1) contact.attributes.LASTNAME = name.split(" ").slice(1).join(" ");
+          if (phone) contact.attributes.SMS = phone;
+
+          const brevoRes = await fetch("https://api.brevo.com/v3/contacts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "api-key": BREVO_KEY
+            },
+            body: JSON.stringify(contact)
+          });
+
+          const brevoData = await brevoRes.json().catch(function() { return {}; });
+          if (brevoRes.ok || brevoRes.status === 204) {
+            return res.status(200).json({ success: true, message: "Subscribed successfully" });
+          } else if (brevoRes.status === 400 && brevoData.code === "duplicate_parameter") {
+            // Contact already exists - update their list
+            return res.status(200).json({ success: true, message: "Already subscribed" });
+          } else {
+            return res.status(500).json({ error: "Subscription failed", details: brevoData });
+          }
         }
 
         return res.status(400).json({ error: "Missing required parameters" });
