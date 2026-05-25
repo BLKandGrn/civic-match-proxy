@@ -139,7 +139,7 @@ export default async function handler(req, res) {
           }
         }
 
-        return res.status(400).json({ error: "Missing required parameters" });
+      
 if (endpoint === "generate-guide") {
   const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
@@ -157,6 +157,7 @@ const { prompt } = bodyData.prompt ? bodyData : req.query;
   const data = await response.json();
   return res.status(200).json(data);
 }
+          return res.status(400).json({ error: "Missing required parameters" });
   } catch (err) {
           return res.status(500).json({ error: "Proxy error", message: err.message });
   }
