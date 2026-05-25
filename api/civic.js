@@ -147,7 +147,7 @@ if (endpoint === "generate-guide") {
 if (req.body) {
   bodyData = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
 }
-const { prompt } = bodyData.prompt ? bodyData : req.query;
+const prompt = bodyData.prompt || req.query.prompt;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
