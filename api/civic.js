@@ -140,7 +140,19 @@ export default async function handler(req, res) {
         }
 
         return res.status(400).json({ error: "Missing required parameters" });
-
+if (endpoint === "generate-guide") {
+  const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
+  const { prompt } = req.method === "POST" ? await new Promise((resolve) => { let body = ""; req.on("data", c => body += c); req.on("end", () => resolve(JSON.parse(body))); }) : req.query;
+  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": ANTH_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 3000, messages: [{ role: "user", content: prompt }] })
+  });
+  const data = await response.json();
+  return res.status(200).json(data);
+}
   } catch (err) {
           return res.status(500).json({ error: "Proxy error", message: err.message });
   }
