@@ -143,7 +143,11 @@ export default async function handler(req, res) {
 if (endpoint === "generate-guide") {
   const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
-  const { prompt } = req.body || req.query;
+ let bodyData = {};
+if (req.body) {
+  bodyData = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+}
+const { prompt } = bodyData.prompt ? bodyData : req.query;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
