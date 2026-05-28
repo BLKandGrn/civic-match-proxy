@@ -84,6 +84,20 @@ export default async function handler(req, res) {
         }
 
         // Democracy Works: upcoming elections by state OCD-ID
+        // Democracy Works: address-specific ballot — elections, candidates, ballot measures
+        if (endpoint === "dw-ballot") {
+          if (!address) return res.status(400).json({ error: "address required" });
+          if (!DEMOCRACY_WORKS_KEY) return res.status(500).json({ error: "Democracy Works API key not configured" });
+          const url = `https://api.democracy.works/elections/upcoming?address=${encodeURIComponent(address)}`;
+          const response = await fetch(url, { headers: { "Accept": "application/json", "Authorization": `apikey ${DEMOCRACY_WORKS_KEY}` } });
+          if (!response.ok) {
+            const err = await response.text();
+            return res.status(response.status).json({ error: err });
+          }
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
         if (endpoint === "dw-elections") {
           if (!state) return res.status(400).json({ error: "state required" });
           if (!DEMOCRACY_WORKS_KEY) return res.status(500).json({ error: "Democracy Works API key not configured" });
