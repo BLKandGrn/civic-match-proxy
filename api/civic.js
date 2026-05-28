@@ -8,6 +8,7 @@ export default async function handler(req, res) {
   const { address, state, district, endpoint, memberId, legislatorId } = req.query;
 
   const GOOGLE_KEY = process.env.GOOGLE_CIVIC_API_KEY;
+  const FEC_KEY = process.env.FEC_API_KEY || "DEMO_KEY";
       const BREVO_KEY = process.env.BREVO_API_KEY;
       const CONGRESS_KEY = process.env.CONGRESS_API_KEY;
       const OPEN_STATES_KEY = process.env.OPEN_STATES_API_KEY;
@@ -140,7 +141,52 @@ export default async function handler(req, res) {
         }
 
       
-if (endpoint === "generate-guide") {
+// OpenFEC: search candidates by state + office
+        if (endpoint === "fec-candidates") {
+          const { state, office, cycle } = req.query;
+          const electionCycle = cycle || "2026";
+          let url = `https://api.open.fec.gov/v1/candidates/?api_key=${FEC_KEY}&per_page=20&sort=name&election_year=${electionCycle}`;
+          if (state) url += `&state=${state.toUpperCase()}`;
+          if (office) url += `&office=${office.toUpperCase()}`;
+          const response = await fetch(url);
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
+        // OpenFEC: candidate totals (total raised)
+        if (endpoint === "fec-totals") {
+          const { candidateId, cycle } = req.query;
+          if (!candidateId) return res.status(400).json({ error: "candidateId required" });
+          const electionCycle = cycle || "2026";
+          const url = `https://api.open.fec.gov/v1/candidate/${candidateId}/totals/?api_key=${FEC_KEY}&cycle=${electionCycle}&per_page=1`;
+          const response = await fetch(url);
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
+        // OpenFEC: top donors (schedule A by committee)
+        if (endpoint === "fec-donors") {
+          const { committeeId, cycle } = req.query;
+          if (!committeeId) return res.status(400).json({ error: "committeeId required" });
+          const electionCycle = cycle || "2026";
+          const url = `https://api.open.fec.gov/v1/schedules/schedule_a/by_employer/?api_key=${FEC_KEY}&committee_id=${committeeId}&cycle=${electionCycle}&sort=-total&per_page=5`;
+          const response = await fetch(url);
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
+        // OpenFEC: get candidate's principal committee ID
+        if (endpoint === "fec-committee") {
+          const { candidateId, cycle } = req.query;
+          if (!candidateId) return res.status(400).json({ error: "candidateId required" });
+          const electionCycle = cycle || "2026";
+          const url = `https://api.open.fec.gov/v1/candidate/${candidateId}/committees/?api_key=${FEC_KEY}&cycle=${electionCycle}&designation=P&per_page=1`;
+          const response = await fetch(url);
+          const data = await response.json();
+          return res.status(200).json(data);
+        }
+
+        if (endpoint === "generate-guide") {
   const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
  let bodyData = {};
