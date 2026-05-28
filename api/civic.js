@@ -186,6 +186,31 @@ export default async function handler(req, res) {
           return res.status(200).json(data);
         }
 
+        if (endpoint === "candidate-bio") {
+          const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
+          if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
+          let bodyData = {};
+          if (req.body) bodyData = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+          const { name, office, state } = bodyData;
+          if (!name) return res.status(400).json({ error: "name required" });
+          const prompt = `You are a nonpartisan civic information assistant. Search for and summarize ${name}'s publicly stated policy positions for their ${office || "federal"} race in ${state || "the US"}. Use only verified public sources — campaign website, official interviews, news coverage. Respond in 2-3 sentences maximum. If you find no reliable public information, respond with exactly: "Limited public record. Visit their FEC profile or search their name for campaign information."`;
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-api-key": ANTH_KEY, "anthropic-version": "2023-06-01" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-5",
+              max_tokens: 400,
+              tools: [{ type: "web_search_20250305", name: "web_search" }],
+              messages: [{ role: "user", content: prompt }]
+            })
+          });
+          const data = await response.json();
+          // Extract text from response — may have tool_use blocks
+          const textBlock = (data.content || []).find(function(b) { return b.type === "text"; });
+          const text = textBlock ? textBlock.text : "Limited public record.";
+          return res.status(200).json({ text });
+        }
+
         if (endpoint === "generate-guide") {
   const ANTH_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTH_KEY) return res.status(500).json({ error: "Anthropic API key not configured" });
