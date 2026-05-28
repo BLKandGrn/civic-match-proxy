@@ -193,7 +193,17 @@ export default async function handler(req, res) {
           if (req.body) bodyData = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
           const { name, office, state } = bodyData;
           if (!name) return res.status(400).json({ error: "name required" });
-          const prompt = `You are a nonpartisan civic information assistant. Search for and summarize ${name}'s publicly stated policy positions for their ${office || "federal"} race in ${state || "the US"}. Use only verified public sources — campaign website, official interviews, news coverage. Respond in 2-3 sentences maximum. If you find no reliable public information, respond with exactly: "Limited public record. Visit their FEC profile or search their name for campaign information."`;
+          // FEC names are ALL CAPS LAST, FIRST — convert to readable format
+          function formatFecName(raw) {
+            if (!raw || raw !== raw.toUpperCase()) return raw;
+            const parts = raw.split(",");
+            if (parts.length < 2) return raw.split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+            const last = parts[0].trim().split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+            const first = parts[1].trim().split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+            return first + " " + last;
+          }
+          const readableName = formatFecName(name);
+          const prompt = `Search for ${readableName}'s publicly stated policy positions for their ${office || "federal"} race in ${state || "the US"}. Respond with ONLY a 2-3 sentence factual summary of their positions — no preamble, no "Based on my search", no explanation. Use only verified sources. If no public record exists after searching, respond with only: "Limited public record. Visit their FEC profile or search their name for campaign information."`;
           const response = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": ANTH_KEY, "anthropic-version": "2023-06-01" },
